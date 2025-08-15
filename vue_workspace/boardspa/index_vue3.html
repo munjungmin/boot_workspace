@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #wrapper{
+            width: 1400px;
+            height: 800px;
+        }
+        #aside_regist{
+            width: 200px;
+            height: 100%;
+            background: pink;
+            float: left;
+            text-align: center;
+        }
+        #aside_regist *{
+            margin-top: 10px;
+        }
+
+        #content{
+            width: 1000px;
+            height: 100%;
+            float: left;
+        }
+        #content_header{
+            height: 50px;
+            background: skyblue;
+        }
+        #content_list{
+            height: 750px;
+            background: gray;
+        }
+        #aside_detail{
+            width: 200px;
+            height: 100%;
+            background: orange;
+            float: left;
+            text-align: center;
+        }
+        #aside_detail *{
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="aside_regist">
+            <form id="form1" action="">
+                <input type="text" name="title" placeholder="title">
+                <input type="text" name="writer" placeholder="writer">
+                <textarea name="content" rows="10" cols="20"></textarea>
+                <button type="button" @click="regist">등록</button>
+            </form>
+        </div>
+        <div id="content">
+            <div id="content_header">
+
+            </div>
+            <div id="content_list">
+                <table width="100%">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Title</th>
+                            <th>Writer</th>
+                            <th>regdate</th>
+                            <th>hit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr @click="getDetail(board.board_id)" v-for="board in boardList" :key="board.board_id">
+                            <td>{{board.board_id}}</td>
+                            <td>{{board.title}}</td>
+                            <td>{{board.writer}}</td>
+                            <td>{{board.regdate}}</td>
+                            <td>{{board.hit}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="aside_detail">
+            <form id="form2" action="">
+               <input type="text" name="title" placeholder="title" v-model="board.title">
+                <input type="text" name="writer" placeholder="writer" v-model="board.writer">
+                <textarea name="content" rows="10" cols="20" v-model="board.content"></textarea>
+                <button type="button" @click="update()">update</button>
+                <button type="button" @click="del()">delete</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    
+    //이런 코드를 구조 분해라 한다. 
+    /*
+        [구조 분해란?]
+        - 객체나 배열에서 필요한 값만 쉽게 떠내서 변수에 담을 수 있는 문법 
+
+        [예]
+        const person={
+            name: "scott",
+            age: 30
+        }
+        console.log(person.name);
+        console.log(persion.age);
+
+        const {name, age} = person;
+     */
+    const {createApp, reactive, ref} = Vue;
+
+    createApp({
+        setup(){    
+
+            const boardList = reactive([]);  // 배열, 객체 유형의 바인딩 데이터를 선언할 때
+            const board = reactive({});
+            const price = ref(0);  //숫자, 문자, 논리값과 같은 일반데이터는 ref 
+
+            const getList=()=>{
+                $.ajax({
+                    url:"http://localhost:9999/shop/boards",
+                    method: "GET",
+                    success: (result)=>{
+                        boardList.splice(0);  //기존 바인딩 배열 요소 모두 제거 
+                        //boardList = result; 안됨 
+                        result.forEach(item => {
+                            boardList.push(item);
+                        });
+                    }
+                });
+                
+            }
+
+            const regist=()=>{
+                $.ajax({
+                    url:"http://192.168.70.5:9999/shop/boards",
+                    method: "post",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        title: $("#form1 input[name='title']").val(),
+                        writer: $("#form1 input[name='writer']").val(),
+                        content: $("#form1 textarea").val()
+                    }),
+                    success: ()=>{
+                        getList();
+                    },
+                    error: ()=>{
+
+                    }
+                })
+            }
+            const getDetail=(board_id)=>{
+                $.ajax({
+                    url:`http://192.168.70.5:9999/shop/boards/${board_id}`,
+                    method: "get", 
+                    success: (result) => {
+                        //result를 board로 바로 대입하면, board 바인딩 기능이 사라질 수 있으므로 객체 내용 복사하자 
+                        Object.assign(board, result);
+                    }
+                })
+            }
+            const update=()=>{
+                $.ajax({
+                    url: `http://192.168.70.5:9999/shop/boards/${board.board_id}`,
+                    type: "put",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        title: $("#form2 input[name='title']").val(),
+                        writer: $("#form2 input[name='writer']").val(),
+                        content: $("#form2 textarea").val()
+                    }),
+                    success: (result, status, xhr) => {
+                        console.log(result);
+                        getList(); 
+                    },
+                    error: (xhr, status, err) => {
+                        alert(err);
+                    }
+                    })
+            }
+            const del=()=>{
+                if(board.board_id == undefined){  //undefined라면
+                    alert("삭제할 글을 선택해주세요!");
+                    return;
+                }
+
+
+                $.ajax({
+                    url: `http://192.168.70.5:9999/shop/boards/${board.board_id}`,
+                    type: "delete",
+                    success: (result, status, xhr) => {
+                        console.log(result);
+                        getList();
+                    },
+                    error: (xhr, status, err) => {
+                        alert(err);
+                    }
+                })
+            }
+            
+            //목록 요청
+            getList();
+
+            return { boardList, board, price, getList, getDetail, regist, update, del};
+        }
+    }).mount("#app");
+    </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #wrapper{
+            width: 1400px;
+            height: 800px;
+        }
+        #aside_regist{
+            width: 200px;
+            height: 100%;
+            background: pink;
+            float: left;
+            text-align: center;
+        }
+        #aside_regist *{
+            margin-top: 10px;
+        }
+
+        #content{
+            width: 1000px;
+            height: 100%;
+            float: left;
+        }
+        #content_header{
+            height: 50px;
+            background: skyblue;
+        }
+        #content_list{
+            height: 750px;
+            background: gray;
+        }
+        #aside_detail{
+            width: 200px;
+            height: 100%;
+            background: orange;
+            float: left;
+            text-align: center;
+        }
+        #aside_detail *{
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="aside_regist">
+            <form id="form1" action="">
+                <input type="text" name="title" placeholder="title">
+                <input type="text" name="writer" placeholder="writer">
+                <textarea name="content" rows="10" cols="20"></textarea>
+                <button type="button" @click="regist">등록</button>
+            </form>
+        </div>
+        <div id="content">
+            <div id="content_header">
+
+            </div>
+            <div id="content_list">
+                <table width="100%">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Title</th>
+                            <th>Writer</th>
+                            <th>regdate</th>
+                            <th>hit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr @click="getBoard(board.board_id)" v-for="board in boardList">
+                            <td>{{board.board_id}}</td>
+                            <td>{{board.title}}</td>
+                            <td>{{board.writer}}</td>
+                            <td>{{board.regdate}}</td>
+                            <td>{{board.hit}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="aside_detail">
+            <form id="form2" action="">
+               <input type="text" name="title" placeholder="title" v-model="board.title">
+                <input type="text" name="writer" placeholder="writer" v-model="board.writer">
+                <textarea name="content" rows="10" cols="20" v-model="board.content"></textarea>
+                <button type="button" @click="update(board.board_id)">update</button>
+                <button type="button" @click="del(board.board_id)">delete</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data(){
+                return {
+                    // UI 영역에 바인딩 시키고 싶은 데이터 선언 
+                    // 이 데이터들은 일반 데이터가 아니라, UI로 연결되어 있으므로, 이 값만 변경해도 UI가 자동으로 바뀐다. 이러한 유형의 Vue의 데이터를 가리켜 바인딩 데이터  
+                    boardList:[],
+                    board: {
+                        board_id:"",
+                        title: "",
+                        writer: "",
+                        conent: "",
+                        regdate: "",
+                        hit:""
+                    }
+                };
+            },
+            methods: {
+                //등록 메서드 정의 
+                regist(){
+                    //비동기 글쓰기 요청
+                    $.ajax({
+                        url: "http://192.168.70.5:9999/shop/boards",
+                        type: "post",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            title: $("#form1 input[name='title']").val(),
+                            writer: $("#form1 input[name='writer']").val(),
+                            content: $("#form1 textarea").val()
+                        }),
+                        success: (result, status, xhr)=>{
+                            this.getList();
+                            console.log(result);
+                        },
+                        error: function(xhr, status, err){
+                            console.log(err);
+                        }
+                    });
+                },
+                //목록 메서드 정의 
+                getList(){
+                    $.ajax({
+                        url: "http://192.168.70.5:9999/shop/boards",
+                        type: "get",
+                        //화살표 함수는 상위 context를 가리킴
+                        success: (result, status, xhr)=>{
+                            console.log(result);
+                            this.boardList = result;
+                        }
+                    });
+                },
+                getBoard(){
+                    $.ajax({
+                        url: `http://192.168.70.5:9999/shop/boards/${this.board.board_id}`,
+                        type: "get",
+                        success: (result, status, xhr) =>{   // 화살표 함수는 this가 상위 스코프를 가리키니까 상위의 vue객체를 말함, 일반 함수면 ajax객체가 this가 되어서 this.board를 사용할 수 없음 
+                            console.log(result);
+                            this.board = result;
+                        }
+                    })
+                },
+                update(board_id){
+                    $.ajax({
+                        url: `http://192.168.70.5:9999/shop/boards/${this.board.board_id}`,
+                        type: "put",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            title: $("#form2 input[name='title']").val(),
+                            writer: $("#form2 input[name='writer']").val(),
+                            content: $("#form2 textarea").val()
+                        }),
+                        success: (result, status, xhr) => {
+                            console.log(result);
+                            this.getList(); 
+                            this.board = {};    
+                        },
+                        error: (xhr, status, err) => {
+                            console.log(err);
+                        }
+                    })
+                },
+                del(board_id){
+                    console.log(this.board.board_id);
+                    if(this.board.board_id == undefined){  //undefined라면
+                        alert("삭제할 글을 선택해주세요!");
+                        return;
+                    }
+
+
+                    $.ajax({
+                        url: `http://192.168.70.5:9999/shop/boards/${this.board.board_id}`,
+                        type: "delete",
+                        success: (result, status, xhr) => {
+                            console.log(result);
+                            this.getList();
+                            this.board = {};
+                        },
+                        error: (xhr, status, err) => {
+                            console.log(err);
+                        }
+                    })
+                }
+            },
+            mounted(){
+                this.getList();
+            }
+        });
+        app.mount("#app");
+    </script>
+</body>
+</html>

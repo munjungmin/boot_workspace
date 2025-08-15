@@ -1,0 +1,31 @@
+### 게시물 목록 
+GET http://localhost:9999/shop/boards
+Content-Type: application/json
+
+### 게시물 등록
+POST http://localhost:9999/shop/boards
+Content-Type: application/json
+
+{
+    "title":"스프링부트 첫날!",
+    "writer": "ㅁㅈㅁ",
+    "content": "오늘은 jpa를 배웠따."
+}
+
+### 게시물 한 건 조회 
+GET http://localhost:9999/shop/boards/2
+Content-Type: application/json
+
+### 게시물 수정
+PUT http://localhost:9999/shop/boards/2
+Content-Type: application/json
+
+{
+    "title":"[수정됨] 마이바티스 첫날!",
+    "writer": "ㅁㅈㅁ",
+    "content": "[수정본] 오늘은 jpa를 배웠따."
+}
+
+### 게시물 삭제
+DELETE http://localhost:9999/shop/boards/2
+Content-Type: application/json
