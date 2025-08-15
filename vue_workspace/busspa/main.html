@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #map {
+            height: 600px; /* The height is 400 pixels */
+            width: 1300px; /* The width is the width of the web page */
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h3>My Google Maps Demo</h3>
+        <div id="map"></div>
+    </div>
+
+    <script>
+    
+        const {createApp, reactive, ref} = Vue;
+
+        createApp({
+            setup(){
+                let map = null;
+                
+                const initMap = ()=>{
+                    const position = { lng: 127.01, lat: 37.301 };
+
+                    map = new google.maps.Map(document.getElementById("map"), {
+                        zoom: 10,
+                        center: position,
+                        mapId: "MAP_ID"
+                    });   
+
+                    $.ajax({
+                        url: "http://localhost:8888/buses",
+                        type: "get",
+                        success: (result)=>{
+                            console.log(result);
+                            result.forEach(element => {
+                                new google.maps.Marker({
+                                    map: map,
+                                    position: {
+                                        lat: element.gpsy,   // 위도
+                                        lng: element.gpsx   // 경도
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+                window.initMap = initMap;
+                return {  };
+            }
+        }).mount("#app");
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=<YOUR_KEY>&v=weekly&libraries=marker&callback=initMap"></script>
+</body>
+</html>
+
