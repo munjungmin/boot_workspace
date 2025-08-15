@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+
+    <style>
+        #app{
+            width: 300px;
+            height: 400px;
+            border: 1px solid #eee;
+            margin: auto;
+            align-content: center;
+            text-align: center;
+        }
+        #top_area{
+            height: 50px;
+            align-content: center;
+            text-align: center;
+        }
+        #area{
+            width: 280px;
+            height: 280px;
+            border: 1px solid black;
+            margin: auto;
+    
+        }
+        #bottom_area{
+            height: 50px;
+            align-content: center;
+        }
+        input{
+            width: 270px;
+            height: 30px;
+        }
+
+    </style>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>   <!-- vue -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>  <!-- jquery -->
+
+</head>
+<body>
+    <div id="app">
+        <div id="top_area">
+            <button type="button" @click="connect()" class="btn btn-outline-secondary">접속</button>
+            <button type="button" @click="send()" class="btn btn-outline-secondary">메시지</button>
+            <button type="button" @click="disconnect()" class="btn btn-outline-secondary">끊기</button>
+        </div>
+        <div id="content">
+            <textarea id="area" ref="area" v-model="log"></textarea>
+        </div>
+        <div id="bottom_area">
+            <input type="text" placeholder="채팅을 입력하세요" v-model="text" @keyup.enter="send()">
+        </div>
+
+    </div>
+
+    <script>
+        const {createApp, reactive, ref} = Vue;
+        createApp({
+            setup(){
+                //웹소켓 서버 접속 (모든 브라우저에는 표준으로 웹소켓이 지원됨)
+                //따라서 별도의 라이브러리 설치가 필요없음 
+                let ws = null;
+                const log = ref(""); // 바인딩 변수 
+                const area = ref(null);  //textarea 제어를 위한 바인딩 변수 
+                const text = ref("");    //input[type='text'] 값을 가져오기 위한 바인딩 변수 
+
+                //로그 기록 
+                const appendLog = (msg)=>{
+                    log.value += msg + "\n";    //.value로 접근해야 바인딩 속성 유지 
+                }
+                
+                //접속 메서드
+                const connect = () => {
+                    ws = new WebSocket("ws://localhost:7777/ws/echo");
+
+                    ws.onopen = ()=>{
+                        appendLog("Open: 서버 접속 성공");
+                        area.value.style.backgroundColor = "yellow";
+                    }
+
+                    //서버의 메시지 청취 
+                    ws.onmessage = (e)=>{
+                        appendLog(e.data);
+                    }
+                }
+
+                //메시지 전송 메서드
+                const send = ()=>{
+                    ws.send(text.value);    //웹소켓을 통해 메시지 전송
+                    text.value = "";        //입력 초기화 
+                }
+
+                //접속 끊기 
+                const disconnect = ()=>{
+                    if(ws && ws.readyState == WebSocket.OPEN){  //이미 연결이 존재할때만 끊기 
+                        // 웹소켓에서 1000은 정상 종료 코드를 의미, 서버에게 정상 접속 종료를 요청하는 것임
+                        ws.close(1000, "사용자 요청에 의한 접속 종료");
+                        appendLog("접속 종료");
+                    } else {
+                        appendLog("연결 상태가 아닙니다!");
+                    }
+                    area.value.style.backgroundColor = "";
+                }
+                
+
+                return { log, area, text, connect, send, disconnect };
+            }
+
+        }).mount("#app");
+    </script>
+</body>
+</html> 
