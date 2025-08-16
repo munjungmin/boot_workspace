@@ -1,0 +1,6 @@
+# WebSocket 연결
+WEBSOCKET ws://localhost:9999/ws/echo
+
+# 메시지 전송
+SEND Hello Chat Server!
+
