@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 // serverendpoint는 스프링이 아니라 톰캣이 관리함
 // 연결마다 새 인스턴스가 만들어짐!! 그래서 세션?들을 관리하는 클래스를 따로 두어야 한다.
@@ -20,6 +18,11 @@ public class BroadChatEndpoint {
     @OnOpen
     public void onOpen(Session session) {
         log.debug("broad.onOpen() sessionId=" + session.getId());
+        String nickname = session.getRequestParameterMap().get("username").getFirst();
+        log.debug("nickname=" + nickname);
+        log.debug("requestparametermap=" + session.getRequestParameterMap().toString());
+
+        session.getUserProperties().put("nickname", nickname);
         broadSessionManager.addClient(session);
     }
 
