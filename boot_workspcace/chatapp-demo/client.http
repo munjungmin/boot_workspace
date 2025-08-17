@@ -4,3 +4,15 @@ WEBSOCKET ws://localhost:9999/ws/echo
 # 메시지 전송
 SEND Hello Chat Server!
 
+
+### 채팅방 생성
+POST http://localhost:9999/rooms
+Content-Type: application/json
+
+{
+  "title":"태사모34",
+  "description":"태연 사랑하는 사람들 들어와34"
+}
+
+### 채팅방 조회
+GET http://localhost:9999/rooms
