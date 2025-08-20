@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>   <!-- vue -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>  <!-- jquery -->
+    <style>
+        #wrapper{
+            width: 1400px;
+            margin: auto;
+        }
+        #header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #1a1a1a; /* 다크톤 배경 */
+            padding: 12px 16px;
+            border-bottom: 1px solid #333; /* 구분선 */
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        #header span {
+            font-weight: bold;
+            font-size: 15px;
+            color: #ccc; /* 보조 텍스트 */
+            margin-right: 12px;
+        }
+
+        #header input {
+            flex: 1;
+            margin: 0 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: #2a2a2a;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        #header input::placeholder {
+            color: #888;
+        }
+
+        #header button {
+            background-color: #9147ff; /* 치지직/트위치 느낌 보라색 */
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #header button:hover {
+            background-color: #772ce8; /* hover 시 진해짐 */
+        }
+
+    /*   content 영역   */
+        #content{
+            display: flex;          /* 가로 배치 */
+            width: 1400px;
+            height: 800px;
+            background-color: #181818;
+        }
+        #chatroom-list {
+            flex: 1;
+            background-color: #181818;
+            display: flex;
+            flex-wrap: wrap;   /* 줄 바꿈 허용 */
+            gap: 16px;         /* 카드 간격 */
+            padding: 16px;
+        }
+
+        .chatroom-card {
+            background-color: #202020;
+            width: 250px;
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .chatroom-card:hover {
+            transform: translateY(-3px);
+            background-color: #2a2a2a;
+        }
+
+        /* 채팅방 썸네일 영역 */
+        .chatroom-thumb {
+            width: 100%;
+            height: 140px;
+            background-color: #333;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 카드 하단 정보 영역 */
+        .chatroom-info {
+            padding: 10px 12px;
+        }
+        .chatroom-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chatroom-owner {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+    /*   유저 목록 */
+        #user-list {
+            width: 250px;
+            height: 100%;
+            background-color: #202020;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 상단 타이틀 */
+        .user-list-header {
+            padding: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+            border-bottom: 1px solid #333;
+            background-color: #181818;
+        }
+
+        /* 유저 목록 영역 */
+        .user-list-body {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* 개별 유저 아이템 */
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        /* 유저 이름 */
+        .user-name {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+    /*   팝업 시작   */
+        /* 팝업 전체 */
+        /* 팝업 전체 */
+        #pop {
+            width: 1000px;
+            height: 600px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background-color: #f9f9f9;   /* 밝은 배경 */
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            font-family: 'Noto Sans KR', sans-serif;
+            border: 1px solid #ddd;
+        }
+
+        /* 왼쪽 영역 (채팅 로그 + 입력창) */
+        #left-section {
+            flex: 4;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+        }
+
+        /* 채팅 로그 영역 */
+        #logs {
+            flex: 1;
+            padding: 12px;
+            background-color: #fafafa;
+            color: #333;
+            font-size: 14px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        #logs textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: #333;
+            resize: none;
+            outline: none;
+            font-size: 14px;
+        }
+
+        /* 채팅 입력 영역 */
+        #chat_enter {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+
+        #chat_enter input {
+            width: 90%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            color: #333;
+            font-size: 14px;
+        }
+
+        #chat_enter button{
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            color: #333;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        #chat_enter input::placeholder {
+            color: #aaa;
+        }
+
+        /* 오른쪽 영역 (방장/유저 목록) */
+        #right-section {
+            flex: 1;
+            background-color: #f3f3f3;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            color: #333;
+        }
+
+        /* 방장 영역 */
+        #room_owner {
+            padding: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+            background-color: #efefef;
+        }
+
+        /* 참여자 목록 */
+        #right-section ul {
+            flex: 1;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        #right-section li {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #444;
+            border-bottom: 1px solid #eaeaea;
+            transition: background 0.2s;
+        }
+
+        #right-section li:hover {
+            background-color: #e0e0e0;
+        }
+
+        #exit_bt_area{
+            text-align: center;
+            border-top: 1px solid #bbb;
+        }
+        /* 퇴장 버튼 */
+        #right-section button {
+            width: 80%;
+            margin: 12px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: #9147ff; /* 포인트 보라 */
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+
+        }
+
+        #right-section button:hover {
+            background-color: #772ce8;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="wrapper">
+            <div id="header">
+                <span th:text="|${session.member.id} 님|"></span>
+                <input type="hidden" name="userId" th:value="${session.member.id}">
+                <input type="text" id="roomName" placeholder="채팅방 제목 입력">
+                <button type="button" @click="createRoom()">채팅방 생성</button>
+            </div>
+            <div id="content">
+                <div id="chatroom-list">
+                    <div class="chatroom-card" v-for="room in roomList" :key="room.uuid" @click="enterRoom(room.uuid)">
+                        <img class="chatroom-thumb" src="https://placekitten.com/300/140" alt="thumbnail">
+                        <div class="chatroom-info">
+                            <div class="chatroom-title" >{{room.roomName}}</div>
+                            <div class="chatroom-owner">방장: {{room.master}}</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="user-list">
+                    <div class="user-list-header">접속자 목록</div>
+                    <ul class="user-list-body">
+                        <li class="user-item" v-for="member in memberList">
+                            <span class="user-name">{{member.name}}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 팝업 시작 -->
+        <div id="pop" v-show="flag" v-if="room">
+            <div id="left-section">
+                <h4 style="margin-left: 20px"> 방제 {{room.roomName}}</h4>
+                <div id="logs" style="background-color: #eee">
+                    <textarea v-model="log"></textarea>
+                </div>
+                <div id="chat_enter">
+                    <input type="text" placeholder="채팅을 입력하세요" @keyup.enter="sendMsg()" v-model="msg">
+                    <button type="button" @click="sendMsg()">전송</button>
+                </div>
+            </div>
+            <div id="right-section">
+                <div id="room_owner">방장 {{room.master}}</div>
+                <ul>
+                    <li v-for="member in room.memberList" :key="member.id">
+                        <span>{{member.id}}</span>
+                    </li>
+                </ul>
+                <div id="exit_bt_area">
+                    <button type="button">퇴장하기</button>
+                </div>
+            </div>
+        </div>
+
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive } = Vue;
+
+        createApp({
+            setup(){
+                let ws = null;
+                let flag = ref(false);
+                let roomList = reactive([]);
+                let memberList = reactive([]);
+
+                // 채팅방 상세내용 관련
+                let room = ref(null);
+                let msg = ref("");
+                let log = ref("");
+
+                const connect = ()=>{
+                    ws = new WebSocket("ws://localhost:8888/chat/multi");
+
+                    ws.onmessage=(e)=>{
+                        // 1. responseType분석
+                        let response = JSON.parse(e.data); //e.data는 string 이걸 json object로 변환해서 사용!
+                        console.log(response);
+                        if(response.responseType == "connect"){
+                            roomList.splice(0);
+                            response.roomList.forEach(room => {
+                                roomList.push(room);
+                            });
+                            response.memberList.forEach(member =>{
+                                memberList.push(member);
+                            });
+                        }else if(response.responseType == "createRoom"){
+                            roomList.push(response.room);
+                        }else if(response.responseType == "enterRoom"){
+                            //성공 여부를 따져야되나..
+                            room.value = response.room;
+                            console.log(room.value);
+                        } else if (response.responseType == "chat") {
+                            log.value += response.sender + ": " + response.data + "\n";
+                        }
+                    }
+                }
+                const createRoom = ()=>{
+                    // 방 생성 요청메시지 만들기
+                    let request = {
+                        requestType: "createRoom",
+                        userId: $("input[name='userId']").val(),
+                        roomName: $("#roomName").val()
+                    }
+                    console.log(request);
+                    ws.send(JSON.stringify(request));
+                }
+
+                const enterRoom = (roomId)=>{
+                    flag.value = true;
+
+                    //채팅방 입장하기
+                    let request = {
+                        requestType: "enterRoom",
+                        uuid: roomId
+                    }
+                    console.log(request);
+                    ws.send(JSON.stringify(request));
+                }
+
+                const sendMsg = ()=>{
+                    let request = {
+                        requestType: "chat",
+                        uuid: room.value.uuid,
+                        sender: $("input[name='userId']").val(),
+                        data: msg.value
+                    }
+                    console.log(request);
+                    msg.value = "";
+                    ws.send(JSON.stringify(request));
+                }
+
+                connect();
+
+                return {flag, msg, log, room, roomList, memberList, connect, createRoom, enterRoom, sendMsg};
+            }
+        }).mount("#app");
+    </script>
+</body>
+
+</html>
