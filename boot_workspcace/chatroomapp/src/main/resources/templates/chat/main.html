@@ -316,6 +316,7 @@
                 <input type="hidden" name="userId" th:value="${session.member.id}">
                 <input type="text" id="roomName" placeholder="채팅방 제목 입력">
                 <button type="button" @click="createRoom()">채팅방 생성</button>
+                <button type="button" @click="disconnect()">접속 종료</button>
             </div>
             <div id="content">
                 <div id="chatroom-list">
@@ -358,7 +359,7 @@
                     </li>
                 </ul>
                 <div id="exit_bt_area">
-                    <button type="button">퇴장하기</button>
+                    <button type="button" @click="exitRoom()">퇴장하기</button>
                 </div>
             </div>
         </div>
@@ -393,6 +394,8 @@
                             response.roomList.forEach(room => {
                                 roomList.push(room);
                             });
+
+                            memberList.splice(0);
                             response.memberList.forEach(member =>{
                                 memberList.push(member);
                             });
@@ -401,10 +404,29 @@
                         }else if(response.responseType == "enterRoom"){
                             //성공 여부를 따져야되나..
                             room.value = response.room;
+                            log.value += response.participant + "님이 입장하셨습니다." + "\n";
                             console.log(room.value);
                         } else if (response.responseType == "chat") {
                             log.value += response.sender + ": " + response.data + "\n";
+                        } else if (response.responseType == "exitRoom") {
+                            log.value += response.sender + "님이 퇴장하셨습니다." + "\n";
+                            room.value = response.room;
+                        } else if (response.responseType == "close") {
+                            roomList.splice(0);
+                            response.roomList.forEach(room => {
+                                roomList.push(room);
+                            });
+
+                            memberList.splice(0);
+                            response.memberList.forEach(member => {
+                                memberList.push(member);
+                            });
                         }
+
+                    }
+
+                    ws.onclose=(e)=>{
+
                     }
                 }
                 const createRoom = ()=>{
@@ -442,9 +464,20 @@
                     ws.send(JSON.stringify(request));
                 }
 
+                const exitRoom = ()=>{
+                    let request = {
+                        requestType: "exitRoom",
+                        sender: $("input[name='userId']").val(),
+                        uuid: room.value.uuid
+                    }
+                    flag.value = false;
+                    log.value = "";
+                    console.log(request);
+                    ws.send(JSON.stringify(request));
+                }
                 connect();
 
-                return {flag, msg, log, room, roomList, memberList, connect, createRoom, enterRoom, sendMsg};
+                return {flag, msg, log, room, roomList, memberList, connect, createRoom, enterRoom, sendMsg, exitRoom};
             }
         }).mount("#app");
     </script>

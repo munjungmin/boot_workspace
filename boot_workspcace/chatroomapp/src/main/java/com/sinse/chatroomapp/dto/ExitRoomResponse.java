@@ -3,9 +3,9 @@ package com.sinse.chatroomapp.dto;
 import lombok.Data;
 
 @Data
-public class EnterRoomResponse {
+public class ExitRoomResponse {
 
     private String responseType;
-    private String participant;
+    private String sender;
     private Room room;
 }

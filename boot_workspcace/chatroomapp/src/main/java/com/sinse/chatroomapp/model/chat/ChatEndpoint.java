@@ -7,10 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sinse.chatroomapp.domain.Member;
 import com.sinse.chatroomapp.dto.*;
 import jakarta.servlet.http.HttpSession;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.OnMessage;
-import jakarta.websocket.OnOpen;
-import jakarta.websocket.Session;
+import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -59,7 +56,10 @@ public class ChatEndpoint {
             String jsonStr = objectMapper.writeValueAsString(response);
             log.debug("connect response=" + jsonStr);
 
-            session.getAsyncRemote().sendText(jsonStr);
+            //브로드캐스트
+            for (Session s : memberSessionMap.values()) {
+                  s.getAsyncRemote().sendText(jsonStr);
+            }
         }
     }
 
@@ -98,8 +98,12 @@ public class ChatEndpoint {
 
             String jsonStr = objectMapper.writeValueAsString(response);
             log.debug("createRoomResponse=" + jsonStr);
-            session.getAsyncRemote().sendText(jsonStr);
-        } else if (requestType.equals("enterRoom")) {
+
+            for (Session s : memberSessionMap.values()) {
+                s.getAsyncRemote().sendText(jsonStr);
+            }
+        }
+        else if (requestType.equals("enterRoom")) {
             String uuid = jsonNode.get("uuid").asText();
 
             //이 유저를 해당 방에 분류
@@ -133,10 +137,15 @@ public class ChatEndpoint {
             EnterRoomResponse response = new EnterRoomResponse();
             response.setResponseType("enterRoom");
             response.setRoom(room);
+            response.setParticipant(member.getId());
 
             String jsonStr = objectMapper.writeValueAsString(response);
             log.debug("enterRoom response=" + jsonStr);
-            session.getAsyncRemote().sendText(jsonStr);
+
+            for(Member m : room.getMemberList()){
+                memberSessionMap.get(m.getId()).getAsyncRemote().sendText(jsonStr);
+            }
+
         } else if (requestType.equals("chat")) {
             log.debug("chat request=" + jsonNode.toPrettyString());
 
@@ -162,6 +171,85 @@ public class ChatEndpoint {
             for(Member m : room.getMemberList()){
                  memberSessionMap.get(m.getId()).getAsyncRemote().sendText(jsonStr);
             }
+        } else if(requestType.equals("exitRoom")){
+            String uuid = jsonNode.get("uuid").asText();
+            String sender = jsonNode.get("sender").asText();
+
+            Room room = null;
+            Member member = (Member) session.getUserProperties().get("member");
+
+            for (Room r : roomList) {
+                if(r.getUUID().equals(uuid)) {
+                    //방을 나가는게 방장이면 방을 제거
+                    if (r.getMaster().equals(member.getId())) {
+                        roomList.remove(r);
+                        ExplodeResponse response = new ExplodeResponse();
+                        response.setResponseType("explode");
+                        response.setRoomList(roomList);
+                        String jsonStr = objectMapper.writeValueAsString(response);
+                        for (Session s: memberSessionMap.values()) {
+                            s.getAsyncRemote().sendText(jsonStr);
+                        }
+                    } else {
+                        //r.getMemberList().removeIf(m -> m.getId().equals(member.getId()));
+                        for (Member m : r.getMemberList()) {
+                            if (m.getId().equals(member.getId())) {
+                                r.getMemberList().remove(m);
+                                break; //내부적으로 iterator를 사용해서 직접 remove하면 내부 count가 꼬여서 break 필수
+                            }
+                        }
+                        room = r;
+                    }
+                    break;
+                }
+            }
+
+            ExitRoomResponse response = new ExitRoomResponse();
+            response.setResponseType("exitRoom");
+            response.setRoom(room);
+            response.setSender(sender);
+            String jsonStr = objectMapper.writeValueAsString(response);
+
+            for (Member m : room.getMemberList()) {
+                memberSessionMap.get(m.getId()).getAsyncRemote().sendText(jsonStr);
+            }
+        }
+    }
+
+    @OnClose
+    public void onClose(Session session) throws JsonProcessingException {
+        log.debug("onClose");
+        //3가지 목록에서 사용자 제거
+        Member member = (Member)session.getUserProperties().get("member");
+
+        for(Member m : memberList){
+            if(m.getId().equals(member.getId())){
+                memberList.remove(m);
+            }
+        }
+
+        //memberSessionMap에서 제거
+        memberSessionMap.remove(member.getId());
+
+        //roomList에서 제거
+        // 모든 room 돌면서 member를 찾아야되나 설마?
+        for (Room r : roomList) {
+            for (Member m : r.getMemberList()) {
+                if (m.getId().equals(member.getId())) {
+                    r.getMemberList().remove(m);
+                }
+            }
+        }
+
+        CloseResponse response = new CloseResponse();
+        response.setResponseType("close");
+        response.setMemberList(memberList);
+        response.setRoomList(roomList);
+
+        String jsonStr = objectMapper.writeValueAsString(response);
+
+        for (Session s : memberSessionMap.values()) {
+            s.getAsyncRemote().sendText(jsonStr);
         }
     }
 }
