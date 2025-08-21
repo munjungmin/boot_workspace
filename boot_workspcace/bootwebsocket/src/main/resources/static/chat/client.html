@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <h2>Spring WebSocket 기반 채팅</h2>
+
+    <!-- DB 연동을 하지 않고, 사용자를 직접 입력하여 채팅 -->
+    <div v-if="!connected">
+        <input placeholder="채팅 사용자명 입력" type="text" v-model="username">
+        <button type="button" @click="connect()">웹소켓 서버 접속</button>
+    </div>
+    <div v-else="">
+        <p><b>{{username}}</b>님 접속중</p>
+        <button type="button" @click="disconnect()">접속 종료</button>
+        <div>
+            <input type="text" placeholder="메시지를 입력하세요" v-model="message" @keyup.enter="sendMsg()">
+            <button type="button" @click="sendMsg()">전송</button>
+        </div>
+        <h3>총 접속자</h3>
+        <ul>
+            <li v-for="user in users">{{user}}</li>
+        </ul>
+
+        <h3>메시지 로그</h3>
+        <ul>
+            <li v-for="msg in messages">{{msg.sender}}: {{msg.content}}</li>
+        </ul>
+
+        <div>
+            <input type="text" v-model="roomName" placeholder="방제 입력">
+            <button type="button" @click="createRoom()">방만들기</button>
+        </div>
+
+        <h3>방 목록</h3>
+        <ul>
+            <li v-for="room in rooms" :key="room.roomId">
+                <b>{{room.roomName}}</b> ({{room.userList.length}}명 참여중)
+                <ul>
+                    <li v-for="user in rooms.userList">{{user}}</li>
+                    <button type="button" @click="enterRoom(room.roomId)">입장</button>
+                    <button type="button" @click="leaveRoom(room.roomId)">퇴장</button>
+                </ul>
+            </li>
+        </ul>
+
+    </div>
+</div>
+
+<script>
+    const {createApp, ref} = Vue;
+
+    createApp({
+        setup() {
+            const connected = ref(false);
+            const username = ref("");      //v-model="username"
+            const message = ref("");       // 입력중인 채팅 메시지
+            const users = ref([]);         // 전체 접속자 목록
+            const messages = ref([]);      // 채팅 메시지 목록
+            const roomName = ref("");      // 새로 만든 방이름
+            const rooms = ref([]);         // 방 목록
+            let socket = null;
+
+            const connect = ()=>{
+                if(!username.value.trim()){
+                    alert("이름을 입력하세요");
+                    return;
+                }
+                //서버와 WebSocket 연결 시도
+                socket = new WebSocket("ws://localhost:8888/ws");
+
+                //onopen 호출되었다는 것은 성공했다는 것임
+                socket.onopen = ()=>{
+                    // 성공을 보장한 코드이므로 바인딩 변수 connected = true로 변경, 디자인 자동 반영
+                    connected.value = true;
+
+                    //서버에 '나 접속했어'라고 알리기
+                    send({
+                        type: "CONNECT",
+                        sender: username.value
+                    });
+
+                    send({
+                        type: "ROOM_LIST",
+                        sender: username.value
+                    });
+                }
+
+                socket.onmessage = (e)=>{
+                    console.log("서버가 보낸 메시지", e.data);
+                    let obj = JSON.parse(e.data);
+
+                    if (obj.destination == "/users") {
+                        users.value = obj.body;
+                    } else if (obj.destination == "/messages") {
+                        messages.value.push(obj.body);
+                    } else if (obj.destination == "/rooms") {
+                        rooms.value = obj.body;
+                    }
+                }
+            }
+
+            const send = (payload)=>{
+                socket.send(JSON.stringify(payload));
+            }
+
+            const sendMsg = ()=>{
+                //메시지가 비어있지 않을 경우만, 서버에 전송
+                if (message.value.trim()) {
+                    send({
+                        type: "MESSAGE",
+                        sender: username.value,
+                        content: message.value
+                    });
+                    message.value = "";
+                }
+            }
+
+            const createRoom = ()=>{
+                if(roomName.value.trim()){ // 방제가 비어있지 않다면
+                    send({
+                        type: "ROOM_CREATE",
+                        sender: username.value,
+                        content: roomName.value
+                    });
+                    roomName.value = "";
+                }
+            }
+
+            const enterRoom = (roomId)=>{
+                send({
+                    type: "ROOM_ENTER",
+                    sender: username.value,
+                    roomId: roomId
+                });
+            }
+
+            const leaveRoom = (roomId)=>{
+                send({
+                    type: "ROOM_LEAVE",
+                    sender: username.value,
+                    roomId: roomId
+                });
+            }
+
+            const disconnect = ()=>{
+                //서버에 '나 접속 끊을게' 알리기
+                send({
+                    type: "DISCONNECT",
+                    sender: username.value
+                });
+
+                connected.value = false;
+                socket.close();
+            }
+
+            return {connected, username, message, roomName, rooms, messages, users, connect, createRoom, enterRoom, leaveRoom, sendMsg, disconnect};
+        }
+    }).mount("#app");
+</script>
+</body>
+</html>
