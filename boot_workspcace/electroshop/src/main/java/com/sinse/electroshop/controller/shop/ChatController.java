@@ -32,7 +32,7 @@ public class ChatController {
     //접속 요청 처리
     @MessageMapping("/connect")  //localhost:9999/app/connect
     @SendTo("/topic/users")
-    public Set<String> connect(ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor){
+    public Set<String> connect(ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
         //SimpMessageHeaderAccessor 객체를 이용하면 WebSocket의 Session에 들어있는 정보를 추출
 
         log.debug("chatMessage content=" + chatMessage.getContent());
@@ -40,7 +40,7 @@ public class ChatController {
         int product_id = Integer.parseInt(chatMessage.getContent());
         ChatRoom chatRoom = null;
 
-        if(headerAccessor.getSessionAttributes().get("member") != null){
+        if (headerAccessor.getSessionAttributes().get("member") != null) {
             Member member = (Member) headerAccessor.getSessionAttributes().get("member");
             //HttpSession에서 사용자 로그인 정보인 Member를 꺼내보자
             //STOMP 기반으로 HttpSession을 꺼내려면 인터셉터 객체를 구현 및 등록해야 함
@@ -48,7 +48,7 @@ public class ChatController {
             log.debug("클라이언트 접속과 동시에 보낸 메시지 " + chatMessage.getContent());
 
             //일반회원은 개설된 방에 참여하면 됨.. 하지만 어떤 방을 들어갈 지 알아야 함
-            for(ChatRoom room :rooms.values()){
+            for (ChatRoom room : rooms.values()) {
                 if (room.getProduct_id() == product_id) {
                     chatRoom = room;
                     break;
@@ -56,7 +56,7 @@ public class ChatController {
             }
             chatRoom.getCustomers().add(member.getId());
 
-        } else if(headerAccessor.getSessionAttributes().get("store") != null){
+        } else if (headerAccessor.getSessionAttributes().get("store") != null) {
             Store store = (Store) headerAccessor.getSessionAttributes().get("store");
             log.debug("웹소켓 세션에서 꺼낸 정보는 " + store.getStoreName());
             log.debug("클라이언트 접속과 동시에 보낸 메시지 " + chatMessage.getContent());
@@ -65,7 +65,7 @@ public class ChatController {
             // 채팅방을 추가하기 전에 중복 여부 판단하기
 
             boolean exist = false;
-            for(ChatRoom room :rooms.values()){
+            for (ChatRoom room : rooms.values()) {
                 if (room.getProduct_id() == product_id) {
                     exist = true;
                     chatRoom = room;
@@ -73,7 +73,7 @@ public class ChatController {
                 }
             }
 
-            if(!exist) {
+            if (!exist) {
                 chatRoom = new ChatRoom();
                 chatRoom.setRoomId(UUID.randomUUID().toString());
                 chatRoom.setProduct_id(product_id);  //어떤 상품에 대한 채팅방인지
@@ -89,5 +89,13 @@ public class ChatController {
         }
 
         return chatRoom.getCustomers();
+    }
+
+    //메시지 요청 처리
+    @MessageMapping("/chat.send")
+    @SendTo("/topic/messages")  // /topic/messages를 구독한 사람들에게 전송
+    public ChatMessage send(ChatMessage message) {
+        log.debug("클라이언트가 전송한 메시지 " + message.getContent());
+        return message;
     }
 }
