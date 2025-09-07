@@ -8,3 +8,4 @@
 | **electroshop** | Spring boot, STOMP 기반 쇼핑몰 및 채팅 구현 |
 | **FormLoginNoDB** | Spring Security 기본(디폴트 로그인폼) |
 | **CustomLoginDB** | Spring Security 커스텀 로그인 폼 및 DB연동 |
+| **demojwt** | Form Login 및 JWT 기반 인증 구현 연습 |
